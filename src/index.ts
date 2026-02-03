@@ -1,9 +1,9 @@
-import { Effect, Option, pipe, Array, Layer } from 'effect';
+import { Effect, Option, pipe, Layer } from 'effect';
 import { CosenseClient } from './cosense';
+import { filterPages } from './filter';
 import { getLastImportTime, saveLastImportTime } from './lastImportTime';
 import { BunContext, BunRuntime } from '@effect/platform-bun';
 
-// TODO: test
 const program = Effect.gen(function* () {
   const cosense = yield* CosenseClient;
 
@@ -12,8 +12,7 @@ const program = Effect.gen(function* () {
   );
   const newPages = yield* pipe(
     cosense.exportPages,
-    Effect.map(Array.filter(p => !hasPrivateIcon(p))),
-    Effect.map(Array.filter(p => p.updated > lastImportTime)),
+    Effect.map(pages => filterPages(pages, lastImportTime)),
   );
 
   if (newPages.length === 0) {
@@ -29,15 +28,6 @@ const program = Effect.gen(function* () {
 
   yield* Effect.logInfo('Done');
 });
-
-type Page = {
-  title: string;
-  lines: { text: string }[];
-  updated: number;
-};
-
-const hasPrivateIcon = (p: Page) =>
-  p.lines.some(l => l.text.includes('[private.icon]'));
 
 //
 // main
