@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-name: Duplicator
+name: Publisher
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ env:
   DESTINATION_PROJECT_NAME: ${{ secrets.DESTINATION_PROJECT_NAME }}
 
 jobs:
-  duplicator:
+  publisher:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,5 +28,5 @@ jobs:
           path: last_import.txt
           key: last-import-time
 
-      - name: Run duplicator
+      - name: Run publisher
         run: bun run src/index.ts
