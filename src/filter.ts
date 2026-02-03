@@ -4,7 +4,7 @@ type PageLike = {
   updated: number;
 };
 
-export const filterPages = <T extends PageLike>(
+export const filterPrivatePages = <T extends PageLike>(
   pages: T[],
   lastImportTime: number,
 ): T[] =>

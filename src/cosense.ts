@@ -1,4 +1,5 @@
 import { exportPages as rawExportPages } from '@cosense/std/rest';
+import { deletePage as rawDeletePage } from '@cosense/std/websocket';
 import type { ExportedData } from '@jsr/cosense__types/rest';
 import { Array, Config, Data, Duration, Effect } from 'effect';
 
@@ -15,7 +16,7 @@ export class CosenseClient extends Effect.Service<CosenseClient>()(
         'DESTINATION_PROJECT_NAME',
       );
 
-      const exportPages = Effect.gen(function* () {
+      const exportSourcePages = Effect.gen(function* () {
         yield* Effect.logInfo(`Exporting from /${sourceProject}...`);
 
         const result = yield* Effect.tryPromise({
@@ -34,9 +35,31 @@ export class CosenseClient extends Effect.Service<CosenseClient>()(
         return result.val.pages;
       });
 
+      const exportDestinationPages = Effect.gen(function* () {
+        yield* Effect.logInfo(`Exporting from /${destinationProject}...`);
+
+        const result = yield* Effect.tryPromise({
+          try: () =>
+            rawExportPages(destinationProject, { sid, metadata: true }),
+          catch: e => new CosenseError({ operation: 'export', cause: e }),
+        });
+
+        if (!result.ok) {
+          return yield* new CosenseError({
+            operation: 'export',
+            cause: result.err,
+          });
+        }
+
+        yield* Effect.logInfo(
+          `Exported ${result.val.pages.length} destination pages`,
+        );
+        return result.val.pages;
+      });
+
       // NOTE: @cosense/std の importPages は Blob を使っており、
       // Bun ではファイル名が付かず 400 になるため、自前で実装している
-      const importPages = (pages: ExportedData<true>['pages']) =>
+      const importDestinationPages = (pages: ExportedData<true>['pages']) =>
         Effect.gen(function* () {
           yield* Effect.logInfo(
             `Importing ${pages.length} pages to /${destinationProject}...`,
@@ -91,7 +114,9 @@ export class CosenseClient extends Effect.Service<CosenseClient>()(
           return result;
         });
 
-      const importPagesBatched = (pages: ExportedData<true>['pages']) =>
+      const importDestinationPagesBatched = (
+        pages: ExportedData<true>['pages'],
+      ) =>
         Effect.gen(function* () {
           const chunks = Array.chunksOf(pages, BATCH_SIZE);
           yield* Effect.forEach(
@@ -101,7 +126,7 @@ export class CosenseClient extends Effect.Service<CosenseClient>()(
                 yield* Effect.logInfo(
                   `Batch ${i + 1}/${chunks.length} (${batch.length} pages)`,
                 );
-                yield* importPages(batch);
+                yield* importDestinationPages(batch);
                 if (i < chunks.length - 1) {
                   yield* Effect.sleep(Duration.seconds(1));
                 }
@@ -110,12 +135,58 @@ export class CosenseClient extends Effect.Service<CosenseClient>()(
           );
         });
 
-      return { exportPages, importPages, importPagesBatched };
+      const deleteDestinationPage = (title: string) =>
+        Effect.gen(function* () {
+          yield* Effect.logInfo(`Deleting page: ${title}`);
+
+          const result = yield* Effect.tryPromise({
+            try: () => rawDeletePage(destinationProject, title, { sid }),
+            catch: e => new CosenseError({ operation: 'delete', cause: e }),
+          });
+
+          if (!result.ok) {
+            return yield* new CosenseError({
+              operation: 'delete',
+              cause: result.err,
+            });
+          }
+
+          yield* Effect.logInfo(`Deleted page: ${title}`);
+          return result.val;
+        });
+
+      const deleteDestinationPages = (titles: string[]) =>
+        Effect.gen(function* () {
+          yield* Effect.logInfo(`Deleting ${titles.length} orphan pages...`);
+          yield* Effect.forEach(
+            titles,
+            (title, i) =>
+              Effect.gen(function* () {
+                yield* deleteDestinationPage(title);
+                if (i < titles.length - 1) {
+                  yield* Effect.sleep(Duration.seconds(1));
+                }
+              }),
+            { concurrency: 1 },
+          );
+          yield* Effect.logInfo(`Deleted ${titles.length} orphan pages`);
+        });
+
+      return {
+        destination: {
+          export: exportDestinationPages,
+          import: importDestinationPagesBatched,
+          delete: deleteDestinationPages,
+        },
+        source: {
+          export: exportSourcePages,
+        },
+      };
     }),
   },
 ) {}
 
 export class CosenseError extends Data.TaggedError('CosenseError')<{
-  readonly operation: 'export' | 'import';
+  readonly operation: 'export' | 'import' | 'delete';
   readonly cause: unknown;
 }> {}
