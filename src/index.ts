@@ -3,7 +3,7 @@ import { CosenseClient } from './cosense';
 import { getLastImportTime, saveLastImportTime } from './lastImportTime';
 import { BunContext, BunRuntime } from '@effect/platform-bun';
 
-// TODO: logger, batch
+// TODO: batch, test
 const program = Effect.gen(function* () {
   const cosense = yield* CosenseClient;
 
@@ -17,15 +17,17 @@ const program = Effect.gen(function* () {
   );
 
   if (newPages.length === 0) {
-    console.log('No new pages to import.');
+    yield* Effect.logInfo('No new pages to import');
     return;
   }
 
-  console.log(`Found ${newPages.length} new or updated pages to import.`);
-  console.log(newPages.map(p => p.title));
+  yield* Effect.logInfo(`Importing ${newPages.length} pages`);
+  yield* Effect.logDebug(`Targets: ${newPages.map(p => p.title).join(', ')}`);
 
   yield* cosense.importPages(newPages);
   yield* saveLastImportTime(Math.max(...newPages.map(p => p.updated)));
+
+  yield* Effect.logInfo('Done');
 });
 
 type Page = {
