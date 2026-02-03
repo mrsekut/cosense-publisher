@@ -1,7 +1,4 @@
-import {
-  exportPages as rawExportPages,
-  importPages as rawImportPages,
-} from '@cosense/std/rest';
+import { exportPages as rawExportPages } from '@cosense/std/rest';
 import type { ExportedData } from '@jsr/cosense__types/rest';
 import { Config, Data, Effect } from 'effect';
 
@@ -32,21 +29,51 @@ export class CosenseClient extends Effect.Service<CosenseClient>()(
         return result.val.pages;
       });
 
+      // NOTE: @cosense/std の importPages は Blob を使っており、
+      // Bun ではファイル名が付かず 400 になるため、自前で実装している
       const importPages = (pages: ExportedData<true>['pages']) =>
-        Effect.gen(function* () {
-          const result = yield* Effect.tryPromise({
-            try: () => rawImportPages(destinationProject, { pages }, { sid }),
-            catch: e => new CosenseError({ operation: 'import', cause: e }),
-          });
-
-          if (!result.ok) {
-            return yield* new CosenseError({
-              operation: 'import',
-              cause: result.err,
+        Effect.tryPromise({
+          try: async () => {
+            const data = {
+              pages: pages.map(p => ({
+                title: p.title,
+                lines: p.lines.map(l => ({ text: l.text })),
+              })),
+            };
+            const formData = new FormData();
+            const file = new File([JSON.stringify(data)], 'import.json', {
+              type: 'application/octet-stream',
             });
-          }
+            formData.append('import-file', file);
+            formData.append('name', 'import.json');
 
-          return result.val;
+            const csrfRes = await fetch(
+              'https://scrapbox.io/api/users/me',
+              { headers: { Cookie: `connect.sid=${sid}` } },
+            );
+            const csrfJson = (await csrfRes.json()) as { csrfToken: string };
+
+            const res = await fetch(
+              `https://scrapbox.io/api/page-data/import/${destinationProject}.json`,
+              {
+                method: 'POST',
+                headers: {
+                  Cookie: `connect.sid=${sid}`,
+                  Accept: 'application/json, text/plain, */*',
+                  'X-CSRF-TOKEN': csrfJson.csrfToken,
+                },
+                body: formData,
+              },
+            );
+
+            if (!res.ok) {
+              const body = await res.text();
+              throw new Error(`${res.status} ${res.statusText}: ${body}`);
+            }
+
+            return (await res.json()) as { message: string };
+          },
+          catch: e => new CosenseError({ operation: 'import', cause: e }),
         });
 
       return { exportPages, importPages };
