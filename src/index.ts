@@ -3,7 +3,7 @@ import { CosenseClient } from './cosense';
 import { getLastImportTime, saveLastImportTime } from './lastImportTime';
 import { BunContext, BunRuntime } from '@effect/platform-bun';
 
-// TODO: batch, test
+// TODO: test
 const program = Effect.gen(function* () {
   const cosense = yield* CosenseClient;
 
@@ -24,7 +24,7 @@ const program = Effect.gen(function* () {
   yield* Effect.logInfo(`Importing ${newPages.length} pages`);
   yield* Effect.logDebug(`Targets: ${newPages.map(p => p.title).join(', ')}`);
 
-  yield* cosense.importPages(newPages);
+  yield* cosense.importPagesBatched(newPages);
   yield* saveLastImportTime(Math.max(...newPages.map(p => p.updated)));
 
   yield* Effect.logInfo('Done');

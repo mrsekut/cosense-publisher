@@ -1,6 +1,8 @@
 import { exportPages as rawExportPages } from '@cosense/std/rest';
 import type { ExportedData } from '@jsr/cosense__types/rest';
-import { Config, Data, Effect } from 'effect';
+import { Array, Config, Data, Duration, Effect } from 'effect';
+
+const BATCH_SIZE = 100;
 
 export class CosenseClient extends Effect.Service<CosenseClient>()(
   'app/CosenseClient',
@@ -89,7 +91,26 @@ export class CosenseClient extends Effect.Service<CosenseClient>()(
           return result;
         });
 
-      return { exportPages, importPages };
+      const importPagesBatched = (pages: ExportedData<true>['pages']) =>
+        Effect.gen(function* () {
+          const chunks = Array.chunksOf(pages, BATCH_SIZE);
+          yield* Effect.forEach(
+            chunks,
+            (batch, i) =>
+              Effect.gen(function* () {
+                yield* Effect.logInfo(
+                  `Batch ${i + 1}/${chunks.length} (${batch.length} pages)`,
+                );
+                yield* importPages(batch);
+                if (i < chunks.length - 1) {
+                  yield* Effect.sleep(Duration.seconds(1));
+                }
+              }),
+            { concurrency: 1 },
+          );
+        });
+
+      return { exportPages, importPages, importPagesBatched };
     }),
   },
 ) {}
