@@ -70,7 +70,11 @@ export class CosenseClient extends Effect.Service<CosenseClient>()(
               const data = {
                 pages: pages.map(p => ({
                   title: p.title,
-                  lines: p.lines.map(l => ({ text: l.text })),
+                  lines: p.lines.map(l => ({
+                    text: l.text,
+                    created: l.created,
+                    updated: l.updated,
+                  })),
                 })),
               };
               const formData = new FormData();
