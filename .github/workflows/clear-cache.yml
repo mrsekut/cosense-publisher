@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Clear Cache
+
+on:
+  workflow_dispatch:
+
+jobs:
+  clear-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete last_import cache
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh cache delete last-import-time --repo ${{ github.repository }} || true

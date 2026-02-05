@@ -1,27 +1,21 @@
 import { FileSystem } from '@effect/platform';
-import { Config, Effect, Option } from 'effect';
+import { Effect, Option } from 'effect';
 
-const lastImportFile = Effect.gen(function* () {
-  const source = yield* Config.string('SOURCE_PROJECT_NAME');
-  const dest = yield* Config.string('DESTINATION_PROJECT_NAME');
-  return `last_import_${source}_${dest}.txt`;
-});
+const LAST_IMPORT_FILE = 'last_import.txt';
 
 export const getLastImportTime = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
-  const file = yield* lastImportFile;
 
-  const exists = yield* fs.exists(file);
+  const exists = yield* fs.exists(LAST_IMPORT_FILE);
   if (!exists) {
     return Option.none<number>();
   }
-  const content = yield* fs.readFileString(file);
+  const content = yield* fs.readFileString(LAST_IMPORT_FILE);
   return Option.some(parseInt(content, 10));
 });
 
 export const saveLastImportTime = (time: number) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
-    const file = yield* lastImportFile;
-    yield* fs.writeFileString(file, time.toString());
+    yield* fs.writeFileString(LAST_IMPORT_FILE, time.toString());
   });
