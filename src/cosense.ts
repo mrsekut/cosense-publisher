@@ -25,10 +25,8 @@ export class CosenseClient extends Effect.Service<CosenseClient>()(
         });
 
         if (!result.ok) {
-          return yield* new CosenseError({
-            operation: 'export',
-            cause: result.err,
-          });
+          yield* Effect.fail(new CosenseError({ operation: 'export', cause: result.err, }));
+          return;
         }
 
         yield* Effect.logInfo(`Exported ${result.val.pages.length} pages`);
@@ -45,10 +43,8 @@ export class CosenseClient extends Effect.Service<CosenseClient>()(
         });
 
         if (!result.ok) {
-          return yield* new CosenseError({
-            operation: 'export',
-            cause: result.err,
-          });
+          yield* Effect.fail(new CosenseError({ operation: 'export', cause: result.err, }));
+          return;
         }
 
         yield* Effect.logInfo(
@@ -111,7 +107,7 @@ export class CosenseClient extends Effect.Service<CosenseClient>()(
 
               return (await res.json()) as { message: string };
             },
-            catch: e => new CosenseError({ operation: 'import', cause: e }),
+            catch: e => Effect.fail(new CosenseError({ operation: 'import', cause: e })),
           });
 
           yield* Effect.logInfo(`Import completed: ${result.message}`);
@@ -145,14 +141,11 @@ export class CosenseClient extends Effect.Service<CosenseClient>()(
 
           const result = yield* Effect.tryPromise({
             try: () => rawDeletePage(destinationProject, title, { sid }),
-            catch: e => new CosenseError({ operation: 'delete', cause: e }),
+            catch: e => Effect.fail(new CosenseError({ operation: 'delete', cause: e })),
           });
 
           if (!result.ok) {
-            return yield* new CosenseError({
-              operation: 'delete',
-              cause: result.err,
-            });
+            yield* Effect.fail(new CosenseError({ operation: 'delete', cause: result.err, }));
           }
 
           yield* Effect.logInfo(`Deleted page: ${title}`);
