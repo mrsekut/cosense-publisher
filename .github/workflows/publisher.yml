@@ -28,5 +28,15 @@ jobs:
           path: last_import.txt
           key: last-import-time
 
+      - name: Show last import time
+        run: |
+          if [ -f last_import.txt ]; then
+            TIMESTAMP=$(cat last_import.txt)
+            echo "Last import timestamp: $TIMESTAMP"
+            echo "Last import time: $(date -d @$TIMESTAMP 2>/dev/null || date -r $TIMESTAMP 2>/dev/null || echo 'Unable to parse date')"
+          else
+            echo "No previous import time found (first run)"
+          fi
+
       - name: Run publisher
         run: bun run src/index.ts
