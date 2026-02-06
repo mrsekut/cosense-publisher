@@ -1,4 +1,7 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+# 基本は使わない
+# デバッグ時やフルでプロジェクトを更新したい際に、publisherの実行前に実行する
 name: Clear Cache
 
 on:
