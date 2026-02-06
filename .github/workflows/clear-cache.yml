@@ -8,7 +8,21 @@ jobs:
   clear-cache:
     runs-on: ubuntu-latest
     steps:
+      - name: List caches (before)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "=== Caches before deletion ==="
+          gh cache list --repo ${{ github.repository }}
+
       - name: Delete last_import cache
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh cache delete last-import-time --repo ${{ github.repository }} || true
+
+      - name: List caches (after)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "=== Caches after deletion ==="
+          gh cache list --repo ${{ github.repository }}
