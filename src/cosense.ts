@@ -63,18 +63,8 @@ export class CosenseClient extends Effect.Service<CosenseClient>()(
 
           const result = yield* Effect.tryPromise({
             try: async () => {
-              const data = {
-                pages: pages.map(p => ({
-                  title: p.title,
-                  lines: p.lines.map(l => ({
-                    text: l.text,
-                    created: l.created,
-                    updated: l.updated,
-                  })),
-                })),
-              };
               const formData = new FormData();
-              const file = new File([JSON.stringify(data)], 'import.json', {
+              const file = new File([JSON.stringify({pages})], 'import.json', {
                 type: 'application/octet-stream',
               });
               formData.append('import-file', file);
