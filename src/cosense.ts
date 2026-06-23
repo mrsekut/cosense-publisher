@@ -105,8 +105,7 @@ export class CosenseClient extends Effect.Service<CosenseClient>()(
 
               return (await res.json()) as { message: string };
             },
-            catch: e =>
-              Effect.fail(new CosenseError({ operation: 'import', cause: e })),
+            catch: e => new CosenseError({ operation: 'import', cause: e }),
           });
 
           yield* Effect.logInfo(`Import completed: ${result.message}`);
@@ -140,8 +139,7 @@ export class CosenseClient extends Effect.Service<CosenseClient>()(
 
           const result = yield* Effect.tryPromise({
             try: () => rawDeletePage(destinationProject, title, { sid }),
-            catch: e =>
-              Effect.fail(new CosenseError({ operation: 'delete', cause: e })),
+            catch: e => new CosenseError({ operation: 'delete', cause: e }),
           });
 
           if (!result.ok) {
