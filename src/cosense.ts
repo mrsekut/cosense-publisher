@@ -25,10 +25,9 @@ export class CosenseClient extends Effect.Service<CosenseClient>()(
         });
 
         if (!result.ok) {
-          yield* Effect.fail(
+          return yield* Effect.fail(
             new CosenseError({ operation: 'export', cause: result.err }),
           );
-          return;
         }
 
         yield* Effect.logInfo(`Exported ${result.val.pages.length} pages`);
@@ -45,10 +44,9 @@ export class CosenseClient extends Effect.Service<CosenseClient>()(
         });
 
         if (!result.ok) {
-          yield* Effect.fail(
+          return yield* Effect.fail(
             new CosenseError({ operation: 'export', cause: result.err }),
           );
-          return;
         }
 
         yield* Effect.logInfo(
