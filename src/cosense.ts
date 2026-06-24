@@ -91,6 +91,10 @@ export class CosenseClient extends Effect.Service<CosenseClient>()(
                     Cookie: `connect.sid=${sid}`,
                     Accept: 'application/json, text/plain, */*',
                     'X-CSRF-TOKEN': csrfJson.csrfToken,
+                    // NOTE: Scrapbox は書き込みリクエストの Origin を検証しており、
+                    // 付与しないと CrossOriginWriteNotAllowedError (403) で弾かれる
+                    Origin: 'https://scrapbox.io',
+                    Referer: `https://scrapbox.io/${destinationProject}`,
                   },
                   body: formData,
                 },
