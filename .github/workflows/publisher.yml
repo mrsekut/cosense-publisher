@@ -4,7 +4,7 @@ name: Publisher
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 21 * * *' # JST 6:00
+    - cron: '23 19 * * *' # JST 4:23
 
 env:
   SID: ${{ secrets.SID }}
